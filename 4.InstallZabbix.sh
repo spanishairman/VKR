@@ -2,7 +2,9 @@
 basepath="/home/csadmin"
 postgresconf="postgresql.conf"
 postgreshome="/var/lib/postgresql"
-basepath="/home/csadmin"
+a2conf001="001-default.conf"
+a2conf002="002-default.conf"
+a2ports="ports.conf"
 sed -i 's\zero_if_notfound: no\zero_if_notfound: yes\' /etc/parsec/mswitch.conf
 apt install -y zabbix-server-pgsql zabbix-frontend-php php-pgsql
 sed -i 's\;date.timezone =\date.timezone = Europe/Moscow\' /etc/php/7.0/apache2/php.ini
@@ -12,7 +14,7 @@ echo "host zabbix zabbix 127.0.0.1/32 trust" >> /etc/postgresql/9.6/main/pg_hba.
 systemctl restart postgresql
 cd $postgreshome
 sudo -u postgres psql -c 'CREATE DATABASE zabbix;'
-sudo -u postgres psql -c "CREATE USER zabbix WITH ENCRYPTED PASSWORD '********';"
+sudo -u postgres psql -c "CREATE USER zabbix WITH ENCRYPTED PASSWORD 'P@ssw0rd';"
 sudo -u postgres psql -c 'GRANT ALL ON DATABASE zabbix to zabbix;'
 zcat /usr/share/zabbix-server-pgsql/{schema,images,data}.sql.gz | psql -h localhost zabbix zabbix
 # В случае получения ошибки psql: СБОЙ: error obtaining MAC configuration for user "zabbix", выполнить:
@@ -24,9 +26,16 @@ zcat /usr/share/zabbix-server-pgsql/{schema,images,data}.sql.gz | psql -h localh
 # setfacl -R -m u:postgres:r /etc/parsec/capdb
 # setfacl -m u:postgres:rx /etc/parsec/capdb
 # pdpl-user -l 0:0 zabbix
-a2enconf zabbix-frontend-php
-systemctl reload apache2
 cd $basepath
+a2enconf zabbix-frontend-php
+cp $basepath/$a2conf001 /etc/apache2/sites-available/
+cp $basepath/$a2conf002 /etc/apache2/sites-available/
+cp $basepath/$a2ports /etc/apache2/
+mkdir /var/www/cdp/
+chown -R www-data:www-data /var/www/cdp
+a2ensite $a2conf001
+a2ensite $a2conf002
+systemctl restart apache2
 # Копирование файлов из примеров, входящих в установочный пакет:
 # cp /usr/share/zabbix/conf/zabbix.conf.php.example /etc/zabbix/zabbix.conf.php
 # или cp /usr/share/doc/zabbix-frontend-php/examples/zabbix.conf.php.example /etc/zabbix/zabbix.conf.php
